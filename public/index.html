@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>A3 - Chat</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" type="text/css" href="stylesheet.css">
+	</head>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+	<script>
+		$(function () {
+			var socket = io();
+			$('form').submit(function(e){
+				e.preventDefault(); // prevents page reloading
+				if ($('#msg-input').val() != "") {
+					socket.emit('chat message', $('#msg-input').val());
+					$('#msg-input').val('');
+				}
+				return false;
+			});
+			
+			socket.on('user update', function(userList, socketID, username) {
+				$('#user-list').empty();
+				for(var i = 0; i < userList.length; i++) {
+					$('#user-list').prepend($('<li>').text(userList[i]));
+				}
+				if (socketID == socket.id) {
+					$('#username').html("You are " + username);
+				}
+			});
+			
+			socket.on('chat history', function(chatLog, socketID, username) {
+				if (socketID == socket.id) {
+					// If we were the new user					
+					// Update chat log history
+					$('#message-list').empty();
+					for (var i = 0; i < chatLog.length; i++) {
+						if (chatLog[i].socketID == socket.id) {
+							// we sent the msg, bold it
+							$('#message-list').prepend($('<li style="font-weight: bold;' + 'color: #' + chatLog[i].chatColor + ';">').html(chatLog[i].message));
+						}
+						else {
+							// someone else sent it, print it to screen
+							$('#message-list').prepend($('<li style="color:#' + chatLog[i].chatColor + ';">').text(chatLog[i].message));
+						}
+					}
+				}
+			});
+			
+			socket.on('chat message', function(msg, socketID, chatColor) {
+				if (socketID == socket.id) {
+					console.log(msg);
+					// we sent the msg, bold it
+					$('#message-list').prepend($('<li style="font-weight: bold;">').html(msg));
+				}
+				else {
+					// someone else sent it, print it to screen
+					$('#message-list').prepend($('<li>').html(msg));
+				}
+			});
+
+			socket.on('error message', function(msg, socketID) {
+				if (socketID == socket.id) {
+					// This is our error message
+					$('#message-list').prepend($('<li style="font-weight: bold;background-color:rgba(255,0,0,0.5);">').text(msg));
+				}
+			});
+		});
+	</script>
+	<body>
+	<div class="page-container">
+		<div class="main-display-container">
+			<div class="chat-display-container">
+				<h1 id="username" class="heading">You are USERNAME_NOT_FOUND</h1>
+			    <ul id="message-list" class="list">
+				</ul>
+			</div>
+			<div class="users-display-container">
+				<h1 class="heading">Online users:</h1>
+				<ul id="user-list" class="list">
+				</ul>
+			</div>
+		</div>
+		<form action="" class="chat-input-container">
+			<input id="msg-input" autocomplete="off"/><button id="send-button">Send</button>
+		</form>
+	</div>
+	</body>
+</html>
